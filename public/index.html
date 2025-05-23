@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chatroom</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="usernameModal" class="modal">
+    <div class="modal-content">
+      <h2>Willkommen!</h2>
+      <input type="text" id="usernameInput" placeholder="Benutzername eingeben..." />
+      <button id="enterChat">Chat betreten</button>
+    </div>
+  </div>
+
+  <div id="chatContainer" class="hidden">
+    <header>
+      <h1>💬 Chatroom</h1>
+    </header>
+    <ul id="messages"></ul>
+    <form id="messageForm" autocomplete="off">
+      <input id="messageInput" placeholder="Nachricht eingeben..." />
+      <button>Senden</button>
+    </form>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
