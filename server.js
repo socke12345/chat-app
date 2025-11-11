@@ -6,8 +6,12 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static("public"));
 
+let onlineUsers = 0;
+
 io.on("connection", (socket) => {
   console.log("Ein Benutzer ist verbunden");
+  onlineUsers++;
+  io.emit("user count", onlineUsers);
 
   socket.on("set username", (username) => {
     socket.username = username || "Anonym";
@@ -20,17 +24,21 @@ io.on("connection", (socket) => {
       minute: "2-digit"
     });
 
-    io.emit("chat message", {
+    const messageData = {
       user: socket.username || "Anonym",
-      time: time,
+      time,
       message: msg
-    });
+    };
+
+    io.emit("chat message", messageData);
   });
 
   socket.on("disconnect", () => {
     if (socket.username) {
       socket.broadcast.emit("user left", socket.username);
     }
+    onlineUsers--;
+    io.emit("user count", onlineUsers);
   });
 });
 
