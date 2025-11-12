@@ -17,10 +17,8 @@ let username = "";
 function loadMessages() {
   const saved = JSON.parse(localStorage.getItem("chatMessages")) || [];
   messages.innerHTML = "";
-  saved.forEach((data) => {
-    addMessage(data, false);
-  });
-  messages.scrollTop = messages.scrollHeight;
+  saved.forEach((data) => addMessage(data, false));
+  scrollToBottom();
 }
 
 // Nachricht im localStorage speichern
@@ -33,13 +31,35 @@ function saveMessage(data) {
 // Nachricht im DOM anzeigen
 function addMessage(data, save = true) {
   const item = document.createElement("li");
+  item.classList.add("message");
+
+  // Eigenes vs. fremdes Alignment
+  if (data.user === username) {
+    item.classList.add("self");
+  } else {
+    item.classList.add("other");
+  }
+
+  // Inhalt der Nachricht
   item.innerHTML = `
-    <div><strong>${data.user}</strong> <span class="meta">@ ${data.time}</span></div>
-    <div>${data.message}</div>
+    <div class="meta">
+      <strong style="color:${data.color || '#fff'}">${data.user}</strong>
+      <span>@ ${data.time}</span>
+    </div>
+    <div class="message-text">${data.message}</div>
   `;
-  messages.appendChild(item);
+
+  // Da flex-direction: column-reverse → prepend statt append
+  messages.prepend(item);
+
   if (save) saveMessage(data);
-  messages.scrollTop = messages.scrollHeight;
+  scrollToBottom();
+}
+
+// Scrollen an das untere Ende (neuste Nachricht sichtbar)
+function scrollToBottom() {
+  // Da column-reverse genutzt wird → oben scrollen
+  messages.scrollTop = 0;
 }
 
 // Benutzer betritt den Chat
@@ -49,7 +69,11 @@ enterChatButton.addEventListener("click", () => {
     username = name;
     usernameModal.classList.add("hidden");
     chatContainer.classList.remove("hidden");
-    socket.emit("set username", username);
+
+    // Zufällige Farbe generieren für diesen Benutzer
+    const userColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
+    socket.emit("set username", { name: username, color: userColor });
+
     loadMessages();
   }
 });
@@ -59,7 +83,16 @@ messageForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const msg = messageInput.value.trim();
   if (msg) {
-    socket.emit("chat message", msg);
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const messageData = {
+      user: username,
+      message: msg,
+      time,
+    };
+
+    socket.emit("chat message", messageData);
+    addMessage(messageData); // direkt anzeigen
     messageInput.value = "";
   }
 });
@@ -73,17 +106,17 @@ socket.on("chat message", (data) => {
 socket.on("user joined", (name) => {
   const item = document.createElement("li");
   item.classList.add("meta");
-  item.textContent = `🔵 ${name} ist dem Chat beigetreten`;
-  messages.appendChild(item);
-  messages.scrollTop = messages.scrollHeight;
+  item.textContent = `🟢 ${name} ist dem Chat beigetreten`;
+  messages.prepend(item);
+  scrollToBottom();
 });
 
 socket.on("user left", (name) => {
   const item = document.createElement("li");
   item.classList.add("meta");
   item.textContent = `🔴 ${name} hat den Chat verlassen`;
-  messages.appendChild(item);
-  messages.scrollTop = messages.scrollHeight;
+  messages.prepend(item);
+  scrollToBottom();
 });
 
 // Aktuelle Benutzeranzahl anzeigen
@@ -94,5 +127,4 @@ socket.on("user count", (count) => {
 // Wenn man die Seite neu lädt oder verlässt → logout erzwingen
 window.addEventListener("beforeunload", () => {
   username = "";
-  // Benutzername wird nicht gespeichert
 });
